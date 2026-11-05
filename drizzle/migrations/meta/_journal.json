@@ -8,6 +8,13 @@
       "when": 1793875959225,
       "tag": "0000_neobank_core_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793876117127,
+      "tag": "0001_secure_bootstrap_and_mpin_limits",
+      "breakpoints": true
     }
   ]
 }

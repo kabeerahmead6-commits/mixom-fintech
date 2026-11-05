@@ -72,17 +72,23 @@ export type Database = {
       }
       mpins: {
         Row: {
+          failed_attempts: number
           hash: string
+          locked_until: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          failed_attempts?: number
           hash: string
+          locked_until?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          failed_attempts?: number
           hash?: string
+          locked_until?: string | null
           updated_at?: string
           user_id?: string
         }
