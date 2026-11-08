@@ -73,39 +73,6 @@ export const getDashboard = createServerFn({ method: 'GET' })
     return { profile, balance: Number(wallet?.balance ?? 0), transactions: transactions ?? [], isAdmin, users: [], recentTransactions: [], rates: [] }
   })
 
-export const signUp = createServerFn({ method: 'POST' })
-  .inputValidator((value: { email: string; password: string; name: string; phone: string; accountType: 'customer' | 'agent'; shopName: string }) => value)
-  .handler(async ({ data }) => {
-    const password = data.password.trim()
-    if (password.length < 8 || password.length > 128) throw new Error('Use a password between 8 and 128 characters.')
-    const { supabase } = await import('@/integrations/supabase/client')
-    const { error } = await supabase.auth.signUp({
-      email: data.email.trim(),
-      password,
-      options: {
-        emailRedirectTo: typeof window === 'undefined' ? undefined : window.location.origin,
-        data: { full_name: data.name.trim(), phone: data.phone.trim(), account_type: data.accountType, shop_name: data.shopName.trim() },
-      },
-    })
-    if (error) throw new Error(error.message)
-    return { confirmationRequired: true }
-  })
-
-export const signIn = createServerFn({ method: 'POST' })
-  .inputValidator((value: { email: string; password: string }) => value)
-  .handler(async ({ data }) => {
-    const { supabase } = await import('@/integrations/supabase/client')
-    const { data: authData, error } = await supabase.auth.signInWithPassword({ email: data.email.trim(), password: data.password })
-    if (error) throw new Error(error.message)
-    if (!authData.user) throw new Error('Sign in could not be completed.')
-    const { data: profile } = await supabase.from('profiles').select('blocked').eq('id', authData.user.id).maybeSingle()
-    if (profile?.blocked) {
-      await supabase.auth.signOut()
-      throw new Error('This account is currently paused. Contact support for help.')
-    }
-    return { userId: authData.user.id }
-  })
-
 export const verifyMpin = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
   .inputValidator((value: { pin: string }) => value)
@@ -154,6 +121,16 @@ export const getMpinStatus = createServerFn({ method: 'GET' })
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
     const { data } = await supabaseAdmin.from('mpins').select('user_id').eq('user_id', context.userId).maybeSingle()
     return { needsSetup: !data }
+  })
+
+export const getSignInStatus = createServerFn({ method: 'GET' })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: profile } = await context.supabase.from('profiles').select('blocked').eq('id', context.userId).maybeSingle()
+    if (profile?.blocked) throw new Error('This account is currently paused. Contact support for help.')
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+    const { data: mpin } = await supabaseAdmin.from('mpins').select('user_id').eq('user_id', context.userId).maybeSingle()
+    return { needsSetup: !mpin }
   })
 
 export const getEkoCatalog = createServerFn({ method: 'GET' })
