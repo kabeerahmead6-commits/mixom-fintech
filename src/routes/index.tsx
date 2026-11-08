@@ -4,8 +4,8 @@ import { toast } from 'sonner'
 import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import {
-  applyInternalDemoCredit, getDashboard, getEkoCatalog, getEkoSender,
-  setMpin, signIn, signUp, updateAdminUser, updateCommission, verifyMpin,
+  getDashboard, getEkoCatalog, getEkoSender, getMpinStatus, getSignInStatus,
+  setMpin, updateAdminUser, updateCommission, verifyMpin,
 } from '@/lib/neobank.functions'
 import type { DashboardData } from '@/lib/neobank.types'
 import {
@@ -60,6 +60,8 @@ function NeoBankApp() {
   const [user, setUser] = useState<{ id: string; email: string } | null>(null)
   const [authReady, setAuthReady] = useState(false)
   const [data, setData] = useState<DashboardData | null>(null)
+  const [authInitializing, setAuthInitializing] = useState(true)
+  const [authScreenBusy, setAuthScreenBusy] = useState(false)
   const [activeTab, setActiveTab] = useState<ActiveTab>('services')
   const [screen, setScreen] = useState<Screen>('home')
   const [historyFilter, setHistoryFilter] = useState('all')
@@ -84,10 +86,20 @@ function NeoBankApp() {
 
   useEffect(() => {
     let mounted = true
-    supabase.auth.getUser().then(({ data: { user: currentUser } }) => {
+    supabase.auth.getUser().then(async ({ data: { user: currentUser } }) => {
       if (!mounted) return
       setUser(currentUser ? { id: currentUser.id, email: currentUser.email ?? '' } : null)
-      setAuthReady(true)
+      if (currentUser) {
+        try {
+          const status = await getSignInStatus()
+          if (mounted) setPinNeedsSetup(status.needsSetup)
+        } catch (error) {
+          if (mounted) setUserError(error instanceof Error ? error.message : 'Sign-in could not be completed.')
+          await supabase.auth.signOut()
+          if (mounted) setUser(null)
+        }
+      }
+      if (mounted) { setAuthReady(true); setAuthInitializing(false) }
     })
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return
@@ -97,6 +109,16 @@ function NeoBankApp() {
         setPinVerified(false)
         setPinNeedsSetup(false)
         navigate({ to: '/', replace: true })
+      } else if (_event === 'SIGNED_IN') {
+        setAuthScreenBusy(true)
+        void getSignInStatus().then((status) => {
+          setPinNeedsSetup(status.needsSetup)
+          setAuthScreenBusy(false)
+        }).catch(async (error) => {
+          setUserError(error instanceof Error ? error.message : 'Sign-in could not be completed.')
+          setAuthScreenBusy(false)
+          await supabase.auth.signOut()
+        })
       }
     })
     return () => { mounted = false; authListener.subscription.unsubscribe() }
@@ -110,21 +132,6 @@ function NeoBankApp() {
     }
     void get()
   }, [user, pinVerified, loadDashboard])
-
-  useEffect(() => {
-    if (!user || pinVerified) return
-    const check = async () => {
-      try {
-        const result = await verifyMpin({ data: { pin: '000000' } })
-        if (result.needsSetup) setPinNeedsSetup(true)
-      } catch (error) {
-        const message = error instanceof Error ? error.message : ''
-        if (message.includes('six-digit MPIN')) setPinNeedsSetup(false)
-        else if (message.includes('15 minutes')) setUserError(message)
-      }
-    }
-    void check()
-  }, [user, pinVerified])
 
   const formattedBalance = useMemo(() => new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(data?.balance ?? 0), [data?.balance])
   const filteredTransactions = useMemo(() => {
@@ -148,14 +155,26 @@ function NeoBankApp() {
     setLoading(true); setUserError('')
     const email = String(formData.get('email') ?? '')
     const password = String(formData.get('password') ?? '')
+    const name = String(formData.get('name') ?? '').trim()
+    const phone = String(formData.get('phone') ?? '').trim()
+    const accountType = String(formData.get('accountType') ?? 'customer') as 'customer' | 'agent'
+    const shopName = String(formData.get('shopName') ?? '').trim()
     try {
       if (authMode === 'signup') {
-        await signUp({ data: { email, password, name: String(formData.get('name') ?? ''), phone: String(formData.get('phone') ?? ''), accountType: String(formData.get('accountType') ?? 'customer') as 'customer' | 'agent', shopName: String(formData.get('shopName') ?? '') } })
+        if (name.length < 2) throw new Error('Enter your full name.')
+        if (!/^\d{10}$/.test(phone)) throw new Error('Enter a valid 10-digit mobile number.')
+        if (accountType === 'agent' && shopName.length < 2) throw new Error('Enter your shop name to create an agent account.')
+        const { data: signUpData, error } = await supabase.auth.signUp({
+          email: email.trim(), password: password.trim(),
+          options: { emailRedirectTo: window.location.origin, data: { full_name: name, phone, account_type: accountType, shop_name: shopName } },
+        })
+        if (error) throw error
+        if (!signUpData.user) throw new Error('We could not create your account.')
         setUserError('Check your email for a confirmation link before signing in.')
         setAuthMode('signin')
       } else {
-        await signIn({ data: { email, password } })
-        setUser({ id: 'signed-in', email })
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+        if (error) throw error
       }
     } catch (error) { setUserError(error instanceof Error ? error.message : 'We could not complete that request.') }
     finally { setLoading(false) }
@@ -218,8 +237,8 @@ function NeoBankApp() {
     catch (error) { toast.error(error instanceof Error ? error.message : 'Could not save the commission.') }
   }
 
-  if (!authReady) return <div className="neo-loading"><span className="neo-loader" /><span>Loading NeoBank</span></div>
-  if (!user) return <AuthScreen mode={authMode} setMode={setAuthMode} onSubmit={handleAuth} busy={loading} error={userError} />
+  if (!authReady || authInitializing) return <div className="neo-loading"><span className="neo-loader" /><span>Loading NeoBank</span></div>
+  if (!user) return <AuthScreen mode={authMode} setMode={setAuthMode} onSubmit={handleAuth} busy={loading || authScreenBusy} error={userError} />
   if (!pinVerified) return <MpinScreen isSetup={pinNeedsSetup} busy={loading} error={userError} onSubmit={handlePin} email={user.email} onSignOut={handleSignOut} />
   if (!data?.profile) return <div className="neo-loading"><span className="neo-loader" /><span>{userError || 'Loading your account…'}</span><Button variant="outline" onClick={() => void loadDashboard()}>Retry</Button></div>
 
@@ -337,7 +356,7 @@ function FeatureScreen({ screen, selectedService, data, providerValues, busy, on
     {screen === 'transfer' && <div className="neo-feature-panel"><FeatureIntro icon={<ArrowUpRight size={23} />} title="Domestic money transfer" text="Check Eko sender registration before continuing a bank transfer." /><form action={(formData) => onSenderSearch(formData)} className="neo-form"><Field label="Sender mobile number" name="mobile" placeholder="10-digit mobile number" inputMode="numeric" required /><Button disabled={busy} type="submit" className="neo-submit">{busy ? 'Checking…' : 'Check sender with Eko'}<ArrowRight size={16} /></Button></form><ProviderResponse value={providerValues} /><button className="neo-text-link" onClick={() => void onCatalog('banks')}>View Eko bank directory <ChevronRight size={15} /></button></div>}
     {screen === 'bill' && <div className="neo-feature-panel"><FeatureIntro icon={<Receipt size={23} />} title="Pay a bill or recharge" text="Choose a service, then continue with the provider’s biller details."/><div className="neo-services-grid neo-feature-services">{services.slice(9).map((service) => <ServiceButton key={service.label} service={service} onClick={() => toast(`${service.label} is available once your Eko account is approved for payment transactions.`)} />)}</div><div className="neo-action-row"><Button variant="outline" onClick={() => void onCatalog('categories')} disabled={busy}>{busy ? 'Loading…' : 'Load live bill categories'}</Button></div><ProviderResponse value={providerValues} /></div>}
     {screen === 'service' && <div className="neo-feature-panel"><FeatureIntro icon={selectedService ? <selectedService.icon size={23} /> : <Landmark size={23} />} title={selectedService?.label ?? 'Banking service'} text={selectedService?.description ?? 'Choose a banking service to continue.'}/>{selectedService?.category.startsWith('aeps') ? <><div className="neo-info-callout"><ShieldCheck size={18} /><span>AePS requires an approved Eko agent, Aadhaar consent, and a certified biometric device. No biometric or Aadhaar data is collected on this screen.</span></div><Button onClick={() => toast('AePS transactions are disabled until your Eko production credentials and biometric device are approved.')} className="neo-submit">Check service availability</Button></> : <div className="neo-info-callout"><Clock3 size={18} /><span>This service will appear here after your merchant account is approved and connected.</span></div>}</div>}
-    {screen === 'settlement' && <div className="neo-feature-panel"><FeatureIntro icon={<Wallet size={22} />} title="Wallet management" text="View wallet status and account verification."/><div className="neo-wallet-summary"><span>Available wallet balance</span><strong>₹ {Number(data.balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></div>{data.profile?.kyc_status !== 'verified' && <div className="neo-info-callout"><Clock3 size={17} />Account verification is required before adding money or settling funds.</div>}<div className="neo-info-callout"><Shield size={17} />Real-money wallet funding is not active yet. No deposit, settlement, or transfer is executed from this screen.</div><form action={(formData) => onTestCredit(formData)} className="neo-form"><Field name="amount" label="Development-only credit amount" type="number" placeholder="100" required /><Button type="submit" variant="outline" disabled={busy}>{busy ? 'Saving…' : 'Record pending test credit'}</Button></form></div>}
+    {screen === 'settlement' && <div className="neo-feature-panel"><FeatureIntro icon={<Wallet size={22} />} title="Wallet management" text="View wallet status and account verification."/><div className="neo-wallet-summary"><span>Available wallet balance</span><strong>₹ {Number(data.balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></div>{data.profile?.kyc_status !== 'verified' && <div className="neo-info-callout"><Clock3 size={17} />Account verification is required before adding money or settling funds.</div>}<div className="neo-info-callout"><Shield size={17} />Real-money wallet funding is not active yet. No deposit, settlement, or transfer is executed from this screen.</div></div>}
     {screen === 'earnings' && <div className="neo-feature-panel"><FeatureIntro icon={<Banknote size={22} />} title="Commission earnings" text="Commission summaries appear here as services complete."/><div className="neo-wallet-summary"><span>Available wallet balance</span><strong>₹ {Number(data.balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></div><TransactionList transactions={data.transactions.filter((txn) => txn.category.includes('commission'))} showFull /></div>}
     {screen === 'profile' && <div className="neo-feature-panel"><FeatureIntro icon={<User size={22} />} title="Your account" text="Your verified details and account preferences."/><div className="neo-profile-info"><ProfileLine label="Name" value={data.profile?.full_name || 'Not set'} /><ProfileLine label="Email" value={data.profile?.email || ''} /><ProfileLine label="Account type" value={data.profile?.account_type === 'agent' ? 'Merchant / agent' : 'Personal customer'} /><ProfileLine label="Verification" value={data.profile?.kyc_status ?? 'Pending'} /><ProfileLine label="Virtual account" value={data.profile?.virtual_account_number || 'Not issued'} /><ProfileLine label="IFSC" value={data.profile?.virtual_ifsc || 'NEOB0000001'} /></div><div className="neo-action-row"><Button variant="outline" onClick={onFreeze}><CreditCard size={16} />{data.profile?.card_frozen ? 'Unfreeze card' : 'Freeze card'}</Button><Button variant="outline" onClick={onSignOut}><LogOut size={16} />Sign out</Button></div><div className="neo-info-callout"><ShieldCheck size={17} />Biometric login depends on your device. MPIN protects each new session.</div></div>}
     {screen === 'recharge' && <EmptyState icon={<Smartphone size={24} />} title="Recharge service" description="Connect your approved provider account to complete recharges." />}
