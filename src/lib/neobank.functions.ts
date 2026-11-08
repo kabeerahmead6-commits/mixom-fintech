@@ -23,10 +23,7 @@ async function derivePinHash(pin: string, saltHex: string, pepper: string) {
   return bytesToHex(new Uint8Array(bits))
 }
 
-function makeEkoHeaders() {
-  const developerKey = process.env['EKO_DEVELOPER_KEY']
-  const accessKey = process.env['EKO_ACCESS_KEY']
-  if (!developerKey || !accessKey) throw new Error('Eko is not connected yet.')
+async function makeEkoHeaders(developerKey: string, accessKey: string) {
   const timestamp = Date.now().toString()
   const hmacKey = btoa(accessKey)
   const signingKey = await crypto.subtle.importKey('raw', new TextEncoder().encode(hmacKey), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
@@ -39,13 +36,11 @@ function makeEkoHeaders() {
   }
 }
 
-async function callEko(path: string, query: Record<string, string> = {}) {
-  const initiator = process.env['EKO_INITIATOR_ID']
-  if (!initiator) throw new Error('Eko is not connected yet.')
+async function callEko(path: string, credentials: { developerKey: string; accessKey: string; initiator: string }, query: Record<string, string> = {}) {
   const url = new URL(`https://staging.eko.in/ekoapi/v3${path}`)
-  url.searchParams.set('initiator_id', initiator)
+  url.searchParams.set('initiator_id', credentials.initiator)
   for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value)
-  const response = await fetch(url, { headers: makeEkoHeaders() })
+  const response = await fetch(url, { headers: await makeEkoHeaders(credentials.developerKey, credentials.accessKey) })
   if (!response.ok) throw new Error(`Eko could not complete that request (${response.status}).`)
   const data: unknown = await response.json()
   return data
@@ -136,16 +131,25 @@ export const getSignInStatus = createServerFn({ method: 'GET' })
 export const getEkoCatalog = createServerFn({ method: 'GET' })
   .middleware([requireSupabaseAuth])
   .inputValidator((value: { kind: 'categories' | 'banks' }) => value)
-  .handler(async ({ data }) => callEko(data.kind === 'categories' ? '/customer/payment/bbps/categories' : '/tools/reference/banks'))
+  .handler(async ({ data }) => {
+    const developerKey = process.env['EKO_DEVELOPER_KEY']
+    const accessKey = process.env['EKO_ACCESS_KEY']
+    const initiator = process.env['EKO_INITIATOR_ID']
+    if (!developerKey || !accessKey || !initiator) throw new Error('Eko is not connected yet.')
+    return callEko(data.kind === 'categories' ? '/customer/payment/bbps/categories' : '/tools/reference/banks', { developerKey, accessKey, initiator })
+  })
 
 export const getEkoSender = createServerFn({ method: 'GET' })
   .middleware([requireSupabaseAuth])
   .inputValidator((value: { mobile: string }) => value)
   .handler(async ({ data }) => {
     if (!/^\d{10}$/.test(data.mobile)) throw new Error('Enter a valid 10-digit mobile number.')
+    const developerKey = process.env['EKO_DEVELOPER_KEY']
+    const accessKey = process.env['EKO_ACCESS_KEY']
+    const initiator = process.env['EKO_INITIATOR_ID']
     const userCode = process.env['EKO_USER_CODE']
-    if (!userCode) throw new Error('Eko is not connected yet.')
-    return callEko(`/customer/payment/dmt-fino/sender/${encodeURIComponent(data.mobile)}`, { user_code: userCode })
+    if (!developerKey || !accessKey || !initiator || !userCode) throw new Error('Eko is not connected yet.')
+    return callEko(`/customer/payment/dmt-fino/sender/${encodeURIComponent(data.mobile)}`, { developerKey, accessKey, initiator }, { user_code: userCode })
   })
 
 export const updateAdminUser = createServerFn({ method: 'POST' })
@@ -154,12 +158,22 @@ export const updateAdminUser = createServerFn({ method: 'POST' })
   .handler(async ({ data, context }) => {
     const { data: adminRole } = await context.supabase.from('user_roles').select('user_id').eq('user_id', context.userId).eq('role', 'admin').maybeSingle()
     if (!adminRole) throw new Error('You do not have permission to update accounts.')
+    if (data.field === 'kyc_status' && !['pending', 'verified', 'rejected'].includes(String(data.value))) throw new Error('Select a valid verification status.')
+    if (data.field === 'blocked' && typeof data.value !== 'boolean') throw new Error('Select a valid account status.')
     const update = data.field === 'kyc_status'
       ? { kyc_status: data.value as 'pending' | 'verified' | 'rejected' }
       : { blocked: data.value as boolean }
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
     const { error } = await supabaseAdmin.from('profiles').update(update).eq('id', data.userId)
     if (error) throw new Error('Could not update the account.')
+    if (data.field === 'kyc_status') {
+      const { data: target } = await supabaseAdmin.from('profiles').select('account_type').eq('id', data.userId).maybeSingle()
+      if (target?.account_type === 'agent' && data.value === 'verified') {
+        await supabaseAdmin.from('user_roles').upsert({ user_id: data.userId, role: 'agent' }, { onConflict: 'user_id,role' })
+      } else if (target?.account_type === 'agent' && data.value !== 'verified') {
+        await supabaseAdmin.from('user_roles').delete().eq('user_id', data.userId).eq('role', 'agent')
+      }
+    }
     return { updated: true }
   })
 
@@ -169,6 +183,7 @@ export const updateCommission = createServerFn({ method: 'POST' })
   .handler(async ({ data, context }) => {
     const { data: adminRole } = await context.supabase.from('user_roles').select('user_id').eq('user_id', context.userId).eq('role', 'admin').maybeSingle()
     if (!adminRole) throw new Error('You do not have permission to update commissions.')
+    if (!/^[a-z0-9_]{2,64}$/.test(data.service)) throw new Error('Select a valid service.')
     if (!Number.isFinite(data.percent) || data.percent < 0 || data.percent > 100) throw new Error('Enter a commission from 0 to 100 percent.')
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
     const { error } = await supabaseAdmin.from('commission_rates').upsert({ service: data.service, percent: data.percent, updated_at: new Date().toISOString() })
