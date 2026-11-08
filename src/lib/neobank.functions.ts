@@ -1,15 +1,36 @@
 import { createServerFn } from '@tanstack/react-start'
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware'
-import { supabaseAdmin } from '@/integrations/supabase/client.server'
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
+
+function bytesToHex(bytes: Uint8Array) {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+function hexToBytes(value: string) {
+  const bytes = new Uint8Array(value.length / 2)
+  for (let index = 0; index < bytes.length; index += 1) bytes[index] = Number.parseInt(value.slice(index * 2, index * 2 + 2), 16)
+  return bytes
+}
+
+function bytesToBase64(bytes: Uint8Array) {
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return btoa(binary)
+}
+
+async function derivePinHash(pin: string, saltHex: string, pepper: string) {
+  const material = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin + pepper), 'PBKDF2', false, ['deriveBits'])
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: hexToBytes(saltHex), iterations: 120_000, hash: 'SHA-256' }, material, 512)
+  return bytesToHex(new Uint8Array(bits))
+}
 
 function makeEkoHeaders() {
   const developerKey = process.env['EKO_DEVELOPER_KEY']
   const accessKey = process.env['EKO_ACCESS_KEY']
   if (!developerKey || !accessKey) throw new Error('Eko is not connected yet.')
   const timestamp = Date.now().toString()
-  const hmacKey = Buffer.from(accessKey).toString('base64')
-  const signature = createHmac('sha256', hmacKey).update(timestamp).digest('base64')
+  const hmacKey = btoa(accessKey)
+  const signingKey = await crypto.subtle.importKey('raw', new TextEncoder().encode(hmacKey), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+  const signature = bytesToBase64(new Uint8Array(await crypto.subtle.sign('HMAC', signingKey, new TextEncoder().encode(timestamp))))
   return {
     developer_key: developerKey,
     'secret-key': signature,
@@ -90,6 +111,7 @@ export const verifyMpin = createServerFn({ method: 'POST' })
   .inputValidator((value: { pin: string }) => value)
   .handler(async ({ data, context }) => {
     if (!/^\d{6}$/.test(data.pin)) throw new Error('Enter your six-digit MPIN.')
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
     const { data: pinRow } = await supabaseAdmin.from('mpins').select('hash,failed_attempts,locked_until').eq('user_id', context.userId).maybeSingle()
     if (!pinRow) return { needsSetup: true }
     if (pinRow.locked_until && new Date(pinRow.locked_until).getTime() > Date.now()) throw new Error('Too many tries. Please wait 15 minutes before trying again.')
@@ -97,9 +119,10 @@ export const verifyMpin = createServerFn({ method: 'POST' })
     if (!pepper) throw new Error('MPIN is not available right now.')
     const [salt, saved] = pinRow.hash.split(':')
     if (!salt || !saved) throw new Error('MPIN is not available right now.')
-    const computed = scryptSync(data.pin + pepper, salt, 64)
-    const savedBytes = Buffer.from(saved, 'hex')
-    const valid = savedBytes.length === computed.length && timingSafeEqual(savedBytes, computed)
+    const computed = await derivePinHash(data.pin, salt, pepper)
+    let diff = computed.length ^ saved.length
+    for (let index = 0; index < Math.min(computed.length, saved.length); index += 1) diff |= computed.charCodeAt(index) ^ saved.charCodeAt(index)
+    const valid = diff === 0
     if (!valid) {
       const attempts = Number(pinRow.failed_attempts ?? 0) + 1
       await supabaseAdmin.from('mpins').update({ failed_attempts: attempts >= 5 ? 0 : attempts, locked_until: attempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null }).eq('user_id', context.userId)
@@ -116,11 +139,21 @@ export const setMpin = createServerFn({ method: 'POST' })
     if (!/^\d{6}$/.test(data.pin) || data.pin !== data.confirmPin) throw new Error('Enter matching six-digit MPINs.')
     const pepper = process.env['NEO_MPIN_PEPPER']
     if (!pepper) throw new Error('MPIN is not available right now.')
-    const salt = randomBytes(16).toString('hex')
-    const hash = scryptSync(data.pin + pepper, salt, 64).toString('hex')
+    const saltBytes = crypto.getRandomValues(new Uint8Array(16))
+    const salt = bytesToHex(saltBytes)
+    const hash = `${salt}:${await derivePinHash(data.pin, salt, pepper)}`
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
     const { error } = await supabaseAdmin.from('mpins').upsert({ user_id: context.userId, hash, failed_attempts: 0, locked_until: null })
     if (error) throw new Error('Could not save your MPIN. Please try again.')
     return { saved: true }
+  })
+
+export const getMpinStatus = createServerFn({ method: 'GET' })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+    const { data } = await supabaseAdmin.from('mpins').select('user_id').eq('user_id', context.userId).maybeSingle()
+    return { needsSetup: !data }
   })
 
 export const getEkoCatalog = createServerFn({ method: 'GET' })
@@ -147,6 +180,7 @@ export const updateAdminUser = createServerFn({ method: 'POST' })
     const update = data.field === 'kyc_status'
       ? { kyc_status: data.value as 'pending' | 'verified' | 'rejected' }
       : { blocked: data.value as boolean }
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
     const { error } = await supabaseAdmin.from('profiles').update(update).eq('id', data.userId)
     if (error) throw new Error('Could not update the account.')
     return { updated: true }
@@ -159,23 +193,9 @@ export const updateCommission = createServerFn({ method: 'POST' })
     const { data: adminRole } = await context.supabase.from('user_roles').select('user_id').eq('user_id', context.userId).eq('role', 'admin').maybeSingle()
     if (!adminRole) throw new Error('You do not have permission to update commissions.')
     if (!Number.isFinite(data.percent) || data.percent < 0 || data.percent > 100) throw new Error('Enter a commission from 0 to 100 percent.')
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
     const { error } = await supabaseAdmin.from('commission_rates').upsert({ service: data.service, percent: data.percent, updated_at: new Date().toISOString() })
     if (error) throw new Error('Could not update the commission.')
     return { updated: true }
   })
 
-export const applyInternalDemoCredit = createServerFn({ method: 'POST' })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((value: { amount: number }) => value)
-  .handler(async ({ data, context }) => {
-    if (!Number.isFinite(data.amount) || data.amount <= 0 || data.amount > 10000) throw new Error('Enter an amount up to ₹10,000.')
-    const { data: profile } = await context.supabase.from('profiles').select('kyc_status,blocked').eq('id', context.userId).maybeSingle()
-    if (profile?.blocked || profile?.kyc_status !== 'verified') throw new Error('Complete account verification before adding money.')
-    const { error } = await supabaseAdmin.rpc('apply_wallet_txn', {
-      p_user_id: context.userId, p_direction: 'credit', p_category: 'wallet_topup', p_amount: data.amount,
-      p_description: 'Development wallet credit — not a bank deposit', p_status: 'pending', p_fee: 0, p_commission: 0,
-      p_counterparty: null, p_meta: { source: 'demo', notice: 'not_real_money' },
-    })
-    if (error) throw new Error('Wallet credit could not be recorded.')
-    return { recorded: true }
-  })
