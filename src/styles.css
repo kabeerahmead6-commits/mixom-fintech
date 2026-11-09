@@ -1,0 +1,235 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 5px);
+  --radius-md: calc(var(--radius) - 3px);
+  --radius-lg: calc(var(--radius) - 1px);
+  --radius-xl: var(--radius);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-blue-deep: var(--brand-blue-deep);
+  --color-brand-red: var(--brand-red);
+  --color-brand-gold: var(--brand-gold);
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  font-optical-sizing: auto;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --radius: 0.5rem;
+  --background: oklch(0.992 0.004 260);
+  --foreground: oklch(0.19 0.025 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.19 0.025 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.19 0.025 260);
+  --primary: oklch(0.39 0.15 263);
+  --primary-foreground: oklch(0.99 0.004 260);
+  --secondary: oklch(0.96 0.014 260);
+  --secondary-foreground: oklch(0.26 0.04 265);
+  --muted: oklch(0.956 0.008 260);
+  --muted-foreground: oklch(0.52 0.025 260);
+  --accent: oklch(0.94 0.04 18);
+  --accent-foreground: oklch(0.39 0.14 263);
+  --destructive: oklch(0.58 0.22 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.89 0.018 260);
+  --input: oklch(0.89 0.018 260);
+  --ring: oklch(0.59 0.12 263);
+  --success: oklch(0.59 0.15 155);
+  --warning: oklch(0.83 0.14 85);
+  --brand-blue: oklch(0.37 0.16 264);
+  --brand-blue-deep: oklch(0.28 0.13 264);
+  --brand-red: oklch(0.6 0.2 26);
+  --brand-gold: oklch(0.84 0.16 88);
+}
+
+* { border-color: var(--border); }
+html { min-width: 320px; background: var(--background); }
+body { margin: 0; min-height: 100vh; background: var(--background); color: var(--foreground); }
+button, input, select { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+.neo-app { min-height: 100vh; padding-bottom: 0; background: linear-gradient(180deg, oklch(0.965 0.016 264), var(--background) 520px); }
+.neo-mobile-status { height: 30px; max-width: 1380px; margin: 0 auto; padding: 6px 18px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--brand-blue-deep); font-size: 11px; font-weight: 700; }
+.neo-device, .neo-signal { display: flex; align-items: center; gap: 5px; }
+.neo-device { padding: 3px 9px; color: var(--primary-foreground); background: var(--foreground); border-radius: 999px; }
+.neo-signal-bars { display: inline-flex; align-items: end; gap: 2px; height: 12px; }
+.neo-signal-bars i { width: 3px; background: var(--success); border-radius: 2px; }
+.neo-signal-bars i:nth-child(1) { height: 5px; }.neo-signal-bars i:nth-child(2) { height: 8px; }.neo-signal-bars i:nth-child(3) { height: 11px; }
+.neo-topbar { z-index: 10; position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; max-width: 1380px; margin: 0 auto; padding: 9px 16px 14px; background: color-mix(in oklab, var(--card) 94%, transparent); border-bottom: 1px solid var(--border); box-shadow: 0 4px 14px oklch(0.25 0.05 265 / 8%); backdrop-filter: blur(12px); }
+.neo-topbar p { margin: 0 0 0 2px; color: var(--muted-foreground); font-size: 12px; }
+.neo-balance-row { display: flex; align-items: center; gap: 4px; }
+.neo-balance-title { color: var(--foreground); font-size: 22px; line-height: 1.2; font-weight: 800; }
+.neo-topbar .neo-balance-row > button { width: 32px; height: 32px; padding: 0; color: var(--muted-foreground); }
+.neo-top-actions { display: flex; align-items: center; gap: 6px; }
+.neo-top-actions > button { width: 36px; height: 36px; padding: 0; color: var(--muted-foreground); }
+.neo-avatar { width: 34px; height: 34px; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; color: var(--primary-foreground); background: var(--primary); font-size: 14px; font-weight: 700; }
+.neo-main { padding: 0 12px 92px; }
+.neo-desktop-wrap { max-width: 1380px; min-height: calc(100vh - 90px); margin: 0 auto; display: flex; }
+.neo-desktop-side { display: none; }
+.neo-content { width: 100%; min-width: 0; }
+.neo-page-content { width: 100%; max-width: 980px; margin: 0 auto; padding: 20px 3px 18px; }
+.neo-greeting-row, .neo-page-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 18px; }
+.neo-greeting-row h1, .neo-page-header h1 { margin: 2px 0 4px; font-size: 23px; line-height: 1.2; font-weight: 800; letter-spacing: 0; }
+.neo-subtitle { margin: 0; color: var(--muted-foreground); font-size: 13px; line-height: 1.55; }
+.neo-kicker { margin: 0 0 5px; color: var(--muted-foreground); font-size: 9px; letter-spacing: 1.15px; font-weight: 800; }
+.neo-status-pill { height: 31px; gap: 7px; padding: 0 10px; font-size: 11px; }
+.neo-status-dot { width: 7px; height: 7px; display: inline-block; border-radius: 50%; background: var(--success); }
+.neo-status-dot.offline { background: var(--destructive); }
+.neo-blue-card, .neo-account-card { position: relative; overflow: hidden; padding: 20px; border-radius: 8px; color: var(--primary-foreground); background: linear-gradient(125deg, var(--brand-blue-deep), var(--brand-blue) 58%, oklch(0.46 0.17 260)); box-shadow: 0 14px 30px oklch(0.32 0.12 265 / 20%); }
+.neo-blue-card::before, .neo-account-card::before { content: ""; position: absolute; inset: auto -28px -100px auto; width: 230px; height: 230px; border: 1px solid oklch(1 0 0 / 13%); border-radius: 50%; box-shadow: 0 0 0 20px oklch(1 0 0 / 4%), 0 0 0 40px oklch(1 0 0 / 3%); }
+.neo-card-head, .neo-card-foot { position: relative; z-index: 1; display: flex; justify-content: space-between; gap: 12px; }
+.neo-card-head { align-items: center; font-size: 9px; letter-spacing: 1px; font-weight: 700; opacity: .94; }
+.neo-card-chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border: 1px solid oklch(1 0 0 / 22%); border-radius: 999px; font-size: 9px; letter-spacing: 0; }
+.neo-card-balance { position: relative; z-index: 1; margin: 18px 0; font-size: 30px; line-height: 1; font-weight: 800; }
+.neo-card-foot { align-items: end; padding-top: 14px; border-top: 1px solid oklch(1 0 0 / 23%); }
+.neo-card-foot div { display: grid; gap: 4px; min-width: 0; }
+.neo-card-foot span { font-size: 8px; letter-spacing: 1px; opacity: .76; }
+.neo-card-foot strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.neo-card-quick { position: relative; z-index: 2; display: flex; gap: 7px; margin-top: 17px; }
+.neo-card-quick button { display: inline-flex; align-items: center; gap: 5px; padding: 7px 10px; border: 1px solid oklch(1 0 0 / 35%); border-radius: 5px; color: var(--primary-foreground); background: oklch(1 0 0 / 12%); font-size: 10px; font-weight: 600; cursor: pointer; }
+.neo-quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; padding: 17px 0 15px; }
+.neo-quick-actions button { display: grid; justify-items: center; align-content: start; gap: 6px; min-width: 0; padding: 0 2px; border: 0; color: var(--foreground); background: none; cursor: pointer; font-size: 10px; line-height: 1.3; text-align: center; }
+.neo-quick-icon { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 8px; color: var(--primary); background: var(--card); box-shadow: 0 3px 10px oklch(0.3 0.05 263 / 4%); }
+.neo-kyc-cta { width: 100%; display: flex; align-items: center; gap: 11px; margin: 1px 0 16px; padding: 11px; border: 1px solid var(--border); border-radius: 7px; color: var(--foreground); background: var(--card); text-align: left; cursor: pointer; }
+.neo-kyc-cta > span:nth-child(2) { display: grid; gap: 3px; flex: 1; }
+.neo-kyc-cta strong { font-size: 13px; }.neo-kyc-cta small { color: var(--muted-foreground); font-size: 10px; }
+.neo-kyc-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 6px; color: var(--brand-red); background: var(--accent); }
+.neo-service-panel, .neo-activity-panel { margin: 5px 0 15px; padding: 16px 13px 13px; border: 1px solid var(--border); border-radius: 7px; background: var(--card); box-shadow: 0 4px 15px oklch(0.25 0.05 265 / 4%); }
+.neo-section-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 13px; }
+.neo-section-head h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: 0; }
+.neo-section-head .neo-kicker { margin-bottom: 3px; }
+.neo-text-link { display: inline-flex; align-items: center; gap: 4px; padding: 3px; border: 0; color: var(--primary); background: transparent; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.neo-rotate { transform: rotate(180deg); }
+.neo-services-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 2px; }
+.neo-service-button { min-height: 91px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 7px; padding: 10px 3px 7px; border: 0; border-radius: 5px; color: var(--foreground); background: transparent; cursor: pointer; font-size: 10px; font-weight: 600; line-height: 1.35; text-align: center; }
+.neo-service-button:hover { background: var(--secondary); }
+.neo-service-icon { width: 37px; height: 37px; display: grid; place-items: center; color: var(--primary); }
+.neo-service-button:nth-child(3n + 2) .neo-service-icon { color: var(--brand-red); }
+.neo-promo-strip { width: 100%; display: flex; align-items: center; gap: 10px; margin: 0 0 15px; padding: 12px; border: 1px solid color-mix(in oklab, var(--brand-red) 22%, var(--border)); border-radius: 7px; color: var(--foreground); background: linear-gradient(100deg, var(--accent), var(--card)); text-align: left; cursor: pointer; }
+.neo-promo-mark { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; color: var(--primary-foreground); background: var(--primary); font-size: 17px; font-weight: 800; }
+.neo-promo-strip > span:nth-child(2) { flex: 1; display: grid; gap: 2px; }.neo-promo-strip strong { font-size: 12px; }.neo-promo-strip small { color: var(--muted-foreground); font-size: 10px; }
+.neo-activity-panel { padding-bottom: 3px; }.neo-activity-panel .neo-section-head { margin-bottom: 4px; }
+.neo-transaction-list { display: grid; }
+.neo-transaction-row { display: flex; align-items: center; gap: 9px; min-height: 64px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.neo-transaction-row:last-child { border-bottom: 0; }
+.neo-txn-icon { width: 35px; height: 35px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 50%; color: var(--brand-red); background: var(--card); }
+.neo-txn-icon.credit { color: var(--success); }
+.neo-txn-detail { min-width: 0; flex: 1; display: grid; gap: 4px; }
+.neo-txn-detail strong { overflow: hidden; color: var(--foreground); font-size: 11px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; text-transform: capitalize; }
+.neo-txn-detail span { overflow: hidden; color: var(--muted-foreground); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.neo-txn-amount { display: grid; justify-items: end; gap: 4px; white-space: nowrap; }.neo-txn-amount strong { font-size: 11px; }.neo-txn-amount strong.credit { color: var(--success); }.neo-txn-amount small { color: var(--muted-foreground); font-size: 9px; text-transform: capitalize; }
+.neo-footer-note { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 9px 5px; color: var(--muted-foreground); font-size: 9px; text-align: center; }
+.neo-bottom-nav { z-index: 30; position: fixed; inset: auto 0 0; display: grid; grid-template-columns: repeat(4, 1fr); min-height: 61px; padding: 5px 6px max(5px, env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: color-mix(in oklab, var(--card) 97%, transparent); box-shadow: 0 -5px 16px oklch(0.25 0.04 260 / 5%); backdrop-filter: blur(12px); }
+.neo-nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 0; padding: 4px 2px; border: 0; border-top: 2px solid transparent; color: var(--muted-foreground); background: transparent; font-size: 10px; font-weight: 600; cursor: pointer; }
+.neo-nav-item.active { border-top-color: var(--brand-red); color: var(--primary); }
+.neo-bottom-safe { height: env(safe-area-inset-bottom); }
+.neo-page-header { justify-content: flex-start; margin-bottom: 18px; }
+.neo-page-header > div { flex: 1; }.neo-page-header h1 { font-size: 21px; }
+.neo-page-header > button:first-child { flex: 0 0 auto; }
+.neo-history-filter-wrap { display: grid; gap: 11px; margin-bottom: 10px; }
+.neo-history-tabs { display: flex; gap: 16px; overflow-x: auto; border-bottom: 1px solid var(--border); scrollbar-width: none; }
+.neo-history-tabs::-webkit-scrollbar { display:none; }
+.neo-history-tabs button { flex: 0 0 auto; padding: 8px 0 10px; border: 0; border-bottom: 2px solid transparent; color: var(--muted-foreground); background: transparent; font-size: 11px; font-weight: 700; cursor: pointer; }
+.neo-history-tabs button.active { border-bottom-color: var(--brand-red); color: var(--primary); }
+.neo-search-box { display: flex; align-items: center; gap: 8px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 5px; color: var(--muted-foreground); background: var(--card); }
+.neo-search-box input { width: 100%; border: 0; outline: 0; color: var(--foreground); background: transparent; font-size: 12px; }
+.neo-transaction-stream { padding: 0 11px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); }
+.neo-feature-panel { display: grid; gap: 14px; padding: 16px 13px; border: 1px solid var(--border); border-radius: 7px; background: var(--card); }
+.neo-feature-intro { display: flex; align-items: flex-start; gap: 11px; }.neo-feature-intro > div { flex: 1; }
+.neo-feature-icon { width: 42px; height: 42px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 6px; color: var(--primary); background: var(--secondary); }
+.neo-feature-intro h2 { margin: 1px 0 4px; font-size: 16px; font-weight: 800; }.neo-feature-intro p { margin: 0; color: var(--muted-foreground); font-size: 11px; line-height: 1.55; }
+.neo-form { display: grid; gap: 11px; }.neo-field { display: grid; gap: 6px; color: var(--foreground); font-size: 11px; font-weight: 700; }.neo-field em { color: var(--muted-foreground); font-size: 9px; font-style: normal; font-weight: 400; }
+.neo-field input, .neo-field select { width: 100%; min-height: 42px; padding: 0 11px; border: 1px solid var(--input); border-radius: 5px; color: var(--foreground); background: var(--background); font-size: 12px; outline: 0; }
+.neo-field input:focus, .neo-field select:focus { border-color: var(--ring); box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 20%, transparent); }
+.neo-submit { width: 100%; min-height: 42px; justify-content: center; gap: 8px; border-radius: 5px; font-size: 12px; }
+.neo-info-callout { display: flex; align-items: flex-start; gap: 8px; padding: 10px; border: 1px solid var(--border); border-radius: 5px; color: var(--muted-foreground); background: var(--secondary); font-size: 10px; line-height: 1.55; }
+.neo-info-callout svg { flex: 0 0 auto; color: var(--primary); }
+.neo-wallet-summary { display: grid; gap: 6px; padding: 14px; border-radius: 6px; background: var(--secondary); }.neo-wallet-summary span { color: var(--muted-foreground); font-size: 10px; }.neo-wallet-summary strong { font-size: 22px; }
+.neo-action-row { display: flex; flex-wrap: wrap; gap: 7px; }.neo-action-row button { font-size: 11px; }
+.neo-feature-services { margin-top: 1px; }.neo-provider-results { padding: 11px; border: 1px solid var(--border); border-radius: 5px; background: var(--background); }.neo-provider-head { display: flex; align-items: center; justify-content: space-between; font-size: 11px; }.neo-provider-head span { padding: 3px 7px; border-radius: 99px; background: var(--secondary); color: var(--primary); font-size: 9px; }.neo-provider-head span.success { color: var(--success); }.neo-provider-results p { margin: 8px 0; color: var(--muted-foreground); font-size: 10px; }.neo-provider-results ul { display: grid; gap: 5px; margin: 8px 0 0; padding-left: 16px; font-size: 10px; }
+.neo-profile-info { display: grid; }.neo-profile-line { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); }.neo-profile-line:last-child { border-bottom: 0; }.neo-profile-line span { color: var(--muted-foreground); font-size: 10px; }.neo-profile-line strong { max-width: 60%; overflow-wrap: anywhere; font-size: 10px; text-align: right; }
+.neo-account-profile { display: flex; align-items: center; gap: 11px; margin-bottom: 13px; padding: 13px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); }.neo-account-profile > div { flex: 1; display: grid; gap: 3px; min-width: 0; }.neo-account-profile strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }.neo-account-profile span:not(.neo-avatar) { overflow: hidden; color: var(--muted-foreground); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }.neo-avatar-large { width: 45px; height: 45px; font-size: 18px; }.neo-check { color: var(--success); }.neo-muted-icon { color: var(--muted-foreground); }
+.neo-settings-list { display: grid; margin: 12px 0; padding: 0 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); }.neo-settings-list button { display: flex; justify-content: space-between; align-items: center; padding: 13px 0; border: 0; border-bottom: 1px solid var(--border); color: var(--muted-foreground); background: none; cursor: pointer; }.neo-settings-list button:last-child { border-bottom: 0; }.neo-settings-list button span { display: flex; align-items: center; gap: 9px; color: var(--foreground); font-size: 11px; }
+.neo-signout { width: 100%; font-size: 11px; }
+.neo-help-card { padding: 15px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); }.neo-help-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 6px; color: var(--primary); background: var(--secondary); }.neo-help-card h2 { margin: 10px 0; font-size: 15px; }.neo-help-row { border-top: 1px solid var(--border); }.neo-help-row summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 0; font-size: 11px; font-weight: 700; cursor: pointer; list-style: none; }.neo-help-row summary::-webkit-details-marker { display: none; }.neo-help-row p { margin: -2px 0 12px; color: var(--muted-foreground); font-size: 10px; line-height: 1.5; }
+.neo-empty-state { display: grid; justify-items: center; padding: 28px 12px; color: var(--muted-foreground); text-align: center; }.neo-empty-state > span { width: 40px; height: 40px; display: grid; place-items: center; margin-bottom: 8px; border-radius: 50%; color: var(--primary); background: var(--secondary); }.neo-empty-state strong { color: var(--foreground); font-size: 12px; }.neo-empty-state p { max-width: 290px; margin: 5px 0 0; font-size: 10px; line-height: 1.5; }
+.neo-admin-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; }.neo-admin-metrics > div { display: grid; gap: 4px; padding: 11px 9px; border: 1px solid var(--border); border-radius: 5px; background: var(--card); }.neo-admin-metrics span, .neo-admin-metrics small { color: var(--muted-foreground); font-size: 9px; }.neo-admin-metrics strong { font-size: 19px; }.neo-admin-tabs { display: flex; gap: 15px; margin: 15px 0 11px; border-bottom: 1px solid var(--border); }.neo-admin-tabs button { padding: 8px 0; border: 0; border-bottom: 2px solid transparent; color: var(--muted-foreground); background: transparent; font-size: 10px; font-weight: 700; cursor: pointer; }.neo-admin-tabs button.active { border-color: var(--brand-red); color: var(--primary); }
+.neo-admin-list { display: grid; gap: 9px; }.neo-admin-user { display: grid; gap: 9px; padding: 11px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); }.neo-admin-user-top { display: flex; align-items: center; gap: 8px; }.neo-admin-user-top > div { min-width: 0; flex: 1; display: grid; gap: 3px; }.neo-admin-user-top strong, .neo-admin-user-top > div span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.neo-admin-user-top strong { font-size: 10px; }.neo-admin-user-top > div span { color: var(--muted-foreground); font-size: 9px; }.neo-status-tag { padding: 3px 6px; border-radius: 99px; color: var(--muted-foreground); background: var(--secondary); font-size: 8px; text-transform: capitalize; }.neo-status-tag.verified { color: var(--success); background: color-mix(in oklab,var(--success) 10%,var(--card)); }.neo-status-tag.rejected { color: var(--destructive); }.neo-admin-user-actions { display: flex; gap: 7px; }.neo-admin-user-actions select { flex: 1; min-width: 0; padding: 0 5px; border: 1px solid var(--input); border-radius: 5px; background: var(--background); font-size: 9px; }.neo-admin-user-actions button { font-size: 9px; }.neo-rates-list { display: grid; gap: 7px; }.neo-rate-form { display: flex; align-items: center; gap: 7px; padding: 8px; border: 1px solid var(--border); border-radius: 5px; }.neo-rate-form > span { flex: 1; font-size: 10px; text-transform: capitalize; }.neo-rate-form input { width: 72px; min-width: 0; height: 32px; padding: 0 5px; border: 1px solid var(--input); border-radius: 4px; font-size: 10px; }.neo-rate-form button { font-size: 9px; }
+.neo-auth-page, .neo-mpin-page { min-height: 100vh; display: grid; place-items: center; padding: 22px 16px; background: linear-gradient(150deg, oklch(0.94 0.035 261), var(--background) 52%, oklch(0.96 0.035 30)); }
+.neo-auth-card, .neo-mpin-panel { width: min(100%, 410px); padding: 23px 19px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); box-shadow: 0 18px 45px oklch(0.28 0.08 263 / 12%); }
+.neo-brand { display: flex; align-items: center; gap: 8px; color: var(--brand-blue-deep); font-size: 22px; font-weight: 800; letter-spacing: 0; }.neo-brand-mark { width: 33px; height: 33px; display: grid; place-items: center; border-radius: 7px; color: var(--primary-foreground); background: var(--primary); }.neo-brand-accent { color: var(--brand-red); }
+.neo-auth-icon, .neo-mpin-shield { width: 47px; height: 47px; display: grid; place-items: center; margin: 29px 0 14px; border-radius: 8px; color: var(--primary); background: var(--secondary); }.neo-auth-card > h1, .neo-mpin-panel h1 { margin: 0 0 5px; font-size: 24px; font-weight: 800; }.neo-auth-card > .neo-subtitle, .neo-mpin-panel > .neo-subtitle { margin-bottom: 20px; font-size: 12px; }.neo-auth-switch { margin: 15px 0; color: var(--muted-foreground); font-size: 11px; text-align: center; }.neo-auth-switch button, .neo-signout-link { padding: 0; border: 0; color: var(--primary); background: transparent; font-size: inherit; font-weight: 700; cursor: pointer; }.neo-secure-note, .neo-mpin-secure { display: flex; justify-content: center; align-items: center; gap: 5px; margin: 18px 0 0; color: var(--muted-foreground); font-size: 9px; }.neo-inline-message { margin: 0; padding: 9px; border: 1px solid color-mix(in oklab,var(--destructive) 25%,var(--border)); border-radius: 5px; color: var(--destructive); background: color-mix(in oklab,var(--destructive) 7%,var(--card)); font-size: 10px; line-height: 1.5; }.neo-mpin-panel { max-width: 370px; }.neo-mpin-panel .neo-mpin-shield { margin-top: 38px; }.neo-mpin-panel .neo-field input { letter-spacing: 7px; font-size: 18px; text-align: center; }.neo-mpin-secure { margin: 13px 0; }.neo-signout-link { display: block; margin: 14px auto 0; font-size: 10px; }
+.neo-loading { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 11px; color: var(--muted-foreground); font-size: 12px; }.neo-loader { width: 27px; height: 27px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: neo-spin 800ms linear infinite; }@keyframes neo-spin { to { transform: rotate(360deg); } }
+
+@media (min-width: 640px) {
+  .neo-mobile-status { padding-inline: 26px; }
+  .neo-topbar { padding: 13px 25px 16px; }
+  .neo-main { padding: 0 24px 32px; }
+  .neo-page-content { padding-top: 26px; }
+  .neo-greeting-row h1, .neo-page-header h1 { font-size: 27px; }
+  .neo-blue-card, .neo-account-card { padding: 24px; }
+  .neo-card-balance { font-size: 35px; }
+  .neo-service-panel, .neo-activity-panel { padding: 19px; }
+  .neo-services-grid { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 6px; }
+  .neo-service-button { min-height: 96px; font-size: 11px; }
+  .neo-quick-actions button { font-size: 11px; }.neo-quick-icon { width: 46px; height: 46px; }
+  .neo-bottom-nav { display: none; }
+}
+
+@media (min-width: 960px) {
+  .neo-app { background: var(--background); }
+  .neo-mobile-status { display: none; }
+  .neo-topbar { position: sticky; top: 0; height: 70px; padding: 10px max(28px, calc((100vw - 1380px)/2 + 28px)); }
+  .neo-topbar p { font-size: 12px; }
+  .neo-balance-title { font-size: 19px; }
+  .neo-main { padding: 0 30px; }
+  .neo-desktop-wrap { gap: 26px; }
+  .neo-desktop-side { position: sticky; top: 70px; width: 224px; height: calc(100vh - 70px); flex: 0 0 224px; display: flex; flex-direction: column; padding: 24px 0 15px; border-right: 1px solid var(--border); }
+  .neo-desktop-side .neo-brand { margin: 0 15px 25px; }
+  .neo-side-nav { display: grid; gap: 5px; padding: 0 12px; }
+  .neo-side-nav button { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 11px; border: 0; border-radius: 5px; color: var(--muted-foreground); background: transparent; font-size: 11px; font-weight: 600; text-align: left; cursor: pointer; }
+  .neo-side-nav button:hover, .neo-side-nav button.active { color: var(--primary); background: var(--secondary); }
+  .neo-side-user { display: flex; align-items: center; gap: 8px; margin: auto 10px 0; padding: 10px 7px 0; border-top: 1px solid var(--border); }
+  .neo-side-user > div { min-width: 0; flex: 1; display: grid; gap: 3px; }.neo-side-user b, .neo-side-user small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.neo-side-user b { font-size: 10px; }.neo-side-user small { color: var(--muted-foreground); font-size: 9px; }.neo-side-user button { width: 29px; height: 29px; padding: 0; }
+  .neo-content { flex: 1; width: calc(100% - 250px); }.neo-page-content { padding: 28px 0 35px; }
+  .neo-blue-card, .neo-account-card { max-width: 900px; }.neo-quick-actions { max-width: 570px; padding: 19px 0; }.neo-quick-actions button { gap: 8px; }
+  .neo-service-panel, .neo-activity-panel, .neo-kyc-cta, .neo-promo-strip { max-width: 900px; }
+  .neo-service-panel { padding: 22px 20px; }.neo-service-button { min-height: 102px; font-size: 12px; }.neo-service-icon { width: 44px; height: 44px; }
+  .neo-history-filter-wrap { grid-template-columns: 1fr minmax(220px,280px); align-items: center; }.neo-history-tabs { gap: 21px; }
+  .neo-transaction-row { min-height: 70px; padding: 11px 3px; }.neo-txn-detail strong, .neo-txn-amount strong { font-size: 12px; }.neo-txn-detail span, .neo-txn-amount small { font-size: 10px; }
+  .neo-feature-panel { max-width: 760px; padding: 20px; }.neo-feature-services { max-width: none; }.neo-page-header { max-width: 980px; }
+  .neo-admin-metrics { max-width: 760px; }.neo-admin-tabs, .neo-admin-list, .neo-rates-list { max-width: 760px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
