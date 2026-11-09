@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import { toast } from 'sonner'
 import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -10,11 +11,10 @@ import {
 import type { DashboardData } from '@/lib/neobank.types'
 import {
   ArrowDownLeft, ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Banknote, Bell,
-  BookOpen, BriefcaseBusiness, Check, ChevronDown, ChevronRight, CircleHelp, Clock3,
-  CreditCard, Download, Eye, EyeOff, FileClock, Fingerprint, Gauge, HandCoins,
-  History, Home, Landmark, LockKeyhole, LogOut, Menu, MoreHorizontal, Phone, Receipt,
-  RefreshCw, Search, Settings, Shield, ShieldCheck, Smartphone, Store, User, Users,
-  Wallet, X, Zap,
+  BookOpen, ChevronDown, ChevronRight, CircleHelp, Clock3, CreditCard, Download,
+  Eye, EyeOff, FileClock, Fingerprint, Gauge, HandCoins, History, Home, Landmark,
+  LockKeyhole, LogOut, Phone, Receipt, RefreshCw, Search, Settings, Shield,
+  ShieldCheck, Smartphone, User, Users, Wallet, Zap,
 } from 'lucide-react'
 
 export const Route = createFileRoute('/')({
@@ -258,17 +258,17 @@ function NeoBankApp() {
             <div className="neo-brand"><span className="neo-brand-mark"><Wallet size={20} /></span><span>neo<span className="neo-brand-accent">bank</span></span></div>
             <nav className="neo-side-nav" aria-label="Main navigation">
               <button className={activeTab === 'services' ? 'active' : ''} onClick={() => { setActiveTab('services'); setScreen('home') }}><Home size={18} /> Overview</button>
-              <button className={activeTab === 'history' ? 'active' : ''} onClick={() => setActiveTab('history')}><History size={18} /> Transactions</button>
+              <button className={activeTab === 'history' ? 'active' : ''} onClick={() => { setActiveTab('history'); setScreen('home') }}><History size={18} /> Transactions</button>
               <button onClick={() => { setSelectedService(services[5]); setScreen('transfer') }}><ArrowUpRight size={18} /> Send money</button>
               <button onClick={() => setScreen('bill')}><Receipt size={18} /> Pay a bill</button>
               {data.isAdmin && <button onClick={() => setScreen('admin')}><Gauge size={18} /> Admin console</button>}
-              <button onClick={() => setActiveTab('account')}><User size={18} /> My account</button>
-              <button onClick={() => setActiveTab('help')}><CircleHelp size={18} /> Support</button>
+              <button onClick={() => { setActiveTab('account'); setScreen('home') }}><User size={18} /> My account</button>
+              <button onClick={() => { setActiveTab('help'); setScreen('home') }}><CircleHelp size={18} /> Support</button>
             </nav>
             <div className="neo-side-user"><span className="neo-avatar">{data.profile.full_name?.trim()?.[0]?.toUpperCase() || <User size={19} />}</span><div><b>{data.profile.full_name || 'Welcome'}</b><small>{data.profile.account_type === 'agent' ? data.profile.shop_name || 'Merchant' : data.profile.email}</small></div><Button variant="ghost" size="icon" aria-label="Sign out" onClick={() => void handleSignOut()}><LogOut size={17} /></Button></div>
           </aside>
           <section className="neo-content">
-            {screen === 'admin' && data.isAdmin ? <AdminView data={data} selected={adminList} setSelected={setAdminList} adminChange={adminChange} saveRate={saveRate} onRefresh={() => void loadDashboard()} /> : screen !== 'home' ? <FeatureScreen screen={screen} selectedService={selectedService} data={data} providerValues={providerValues} busy={loading} onBack={() => setScreen('home')} onCatalog={loadEkoCatalog} onSenderSearch={searchEkoSender} onTestCredit={addTestCredit} setProviderValues={setProviderValues} onFreeze={async () => { try { const { error } = await supabase.from('profiles').update({ card_frozen: !data.profile?.card_frozen }).eq('id', user.id); if(error) throw error; await loadDashboard(); toast.success(data.profile?.card_frozen ? 'Card unfrozen.' : 'Card frozen.') } catch { toast.error('Card status could not be updated.') } }} onSignOut={() => void handleSignOut()} /> : activeTab === 'history' ? <HistoryView transactions={filteredTransactions} filter={historyFilter} setFilter={setHistoryFilter} search={historySearch} setSearch={setHistorySearch} /> : activeTab === 'help' ? <HelpView /> : activeTab === 'account' ? <AccountView data={data} onSignOut={() => void handleSignOut()} onFreeze={() => setScreen('profile')} /> : <HomeView data={data} isAgent={isAgent} online={online} setOnline={setOnline} onService={openService} onOpenScreen={setScreen} showAllBills={showAllBills} setShowAllBills={setShowAllBills} />}
+            {screen === 'admin' && data.isAdmin ? <AdminView data={data} selected={adminList} setSelected={setAdminList} adminChange={adminChange} saveRate={saveRate} onRefresh={() => void loadDashboard()} /> : screen !== 'home' ? <FeatureScreen screen={screen} selectedService={selectedService} data={data} providerValues={providerValues} busy={loading} onBack={() => setScreen('home')} onCatalog={loadEkoCatalog} onSenderSearch={searchEkoSender} setProviderValues={setProviderValues} onFreeze={async () => { try { const { error } = await supabase.from('profiles').update({ card_frozen: !data.profile?.card_frozen }).eq('id', user.id); if(error) throw error; await loadDashboard(); toast.success(data.profile?.card_frozen ? 'Card unfrozen.' : 'Card frozen.') } catch { toast.error('Card status could not be updated.') } }} onSignOut={() => void handleSignOut()} /> : activeTab === 'history' ? <HistoryView transactions={filteredTransactions} filter={historyFilter} setFilter={setHistoryFilter} search={historySearch} setSearch={setHistorySearch} /> : activeTab === 'help' ? <HelpView /> : activeTab === 'account' ? <AccountView data={data} onSignOut={() => void handleSignOut()} onFreeze={() => setScreen('profile')} /> : <HomeView data={data} isAgent={isAgent} online={online} setOnline={setOnline} onService={openService} onOpenScreen={setScreen} onHistory={() => setActiveTab('history')} showAllBills={showAllBills} setShowAllBills={setShowAllBills} />}
           </section>
         </div>
       </main>

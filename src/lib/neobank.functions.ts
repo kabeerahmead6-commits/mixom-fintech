@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware'
+import { isSixDigitMpin, isValidCommissionPercent } from '@/lib/neobank.validation'
 
 function bytesToHex(bytes: Uint8Array) {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
@@ -72,7 +73,7 @@ export const verifyMpin = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
   .inputValidator((value: { pin: string }) => value)
   .handler(async ({ data, context }) => {
-    if (!/^\d{6}$/.test(data.pin)) throw new Error('Enter your six-digit MPIN.')
+    if (!isSixDigitMpin(data.pin)) throw new Error('Enter your six-digit MPIN.')
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
     const { data: pinRow } = await supabaseAdmin.from('mpins').select('hash,failed_attempts,locked_until').eq('user_id', context.userId).maybeSingle()
     if (!pinRow) return { needsSetup: true }
@@ -86,9 +87,9 @@ export const verifyMpin = createServerFn({ method: 'POST' })
     for (let index = 0; index < Math.min(computed.length, saved.length); index += 1) diff |= computed.charCodeAt(index) ^ saved.charCodeAt(index)
     const valid = diff === 0
     if (!valid) {
-      const attempts = Number(pinRow.failed_attempts ?? 0) + 1
-      await supabaseAdmin.from('mpins').update({ failed_attempts: attempts >= 5 ? 0 : attempts, locked_until: attempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null }).eq('user_id', context.userId)
-      throw new Error(attempts >= 5 ? 'Too many tries. Please wait 15 minutes before trying again.' : `Incorrect MPIN. ${5 - attempts} tries left.`)
+      const { data: attempts } = await supabaseAdmin.rpc('record_mpin_failure', { p_user_id: context.userId })
+      const count = Number(attempts ?? 5)
+      throw new Error(count >= 5 ? 'Too many tries. Please wait 15 minutes before trying again.' : `Incorrect MPIN. ${5 - count} tries left.`)
     }
     await supabaseAdmin.from('mpins').update({ failed_attempts: 0, locked_until: null }).eq('user_id', context.userId)
     return { needsSetup: false }
@@ -98,7 +99,7 @@ export const setMpin = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
   .inputValidator((value: { pin: string; confirmPin: string }) => value)
   .handler(async ({ data, context }) => {
-    if (!/^\d{6}$/.test(data.pin) || data.pin !== data.confirmPin) throw new Error('Enter matching six-digit MPINs.')
+    if (!isSixDigitMpin(data.pin) || data.pin !== data.confirmPin) throw new Error('Enter matching six-digit MPINs.')
     const pepper = process.env['NEO_MPIN_PEPPER']
     if (!pepper) throw new Error('MPIN is not available right now.')
     const saltBytes = crypto.getRandomValues(new Uint8Array(16))
@@ -156,24 +157,14 @@ export const updateAdminUser = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
   .inputValidator((value: { userId: string; field: 'kyc_status' | 'blocked'; value: string | boolean }) => value)
   .handler(async ({ data, context }) => {
-    const { data: adminRole } = await context.supabase.from('user_roles').select('user_id').eq('user_id', context.userId).eq('role', 'admin').maybeSingle()
-    if (!adminRole) throw new Error('You do not have permission to update accounts.')
     if (data.field === 'kyc_status' && !['pending', 'verified', 'rejected'].includes(String(data.value))) throw new Error('Select a valid verification status.')
     if (data.field === 'blocked' && typeof data.value !== 'boolean') throw new Error('Select a valid account status.')
-    const update = data.field === 'kyc_status'
-      ? { kyc_status: data.value as 'pending' | 'verified' | 'rejected' }
-      : { blocked: data.value as boolean }
-    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
-    const { error } = await supabaseAdmin.from('profiles').update(update).eq('id', data.userId)
-    if (error) throw new Error('Could not update the account.')
-    if (data.field === 'kyc_status') {
-      const { data: target } = await supabaseAdmin.from('profiles').select('account_type').eq('id', data.userId).maybeSingle()
-      if (target?.account_type === 'agent' && data.value === 'verified') {
-        await supabaseAdmin.from('user_roles').upsert({ user_id: data.userId, role: 'agent' }, { onConflict: 'user_id,role' })
-      } else if (target?.account_type === 'agent' && data.value !== 'verified') {
-        await supabaseAdmin.from('user_roles').delete().eq('user_id', data.userId).eq('role', 'agent')
-      }
-    }
+    const { error } = await context.supabase.rpc('admin_update_profile', {
+      p_user_id: data.userId,
+      p_kyc_status: data.field === 'kyc_status' ? String(data.value) : null,
+      p_blocked: data.field === 'blocked' ? Boolean(data.value) : null,
+    })
+    if (error) throw new Error(error.message.includes('Forbidden') ? 'You do not have permission to update accounts.' : 'Could not update the account.')
     return { updated: true }
   })
 
@@ -184,7 +175,7 @@ export const updateCommission = createServerFn({ method: 'POST' })
     const { data: adminRole } = await context.supabase.from('user_roles').select('user_id').eq('user_id', context.userId).eq('role', 'admin').maybeSingle()
     if (!adminRole) throw new Error('You do not have permission to update commissions.')
     if (!/^[a-z0-9_]{2,64}$/.test(data.service)) throw new Error('Select a valid service.')
-    if (!Number.isFinite(data.percent) || data.percent < 0 || data.percent > 100) throw new Error('Enter a commission from 0 to 100 percent.')
+    if (!isValidCommissionPercent(data.percent)) throw new Error('Enter a commission from 0 to 100 percent.')
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
     const { error } = await supabaseAdmin.from('commission_rates').upsert({ service: data.service, percent: data.percent, updated_at: new Date().toISOString() })
     if (error) throw new Error('Could not update the commission.')
