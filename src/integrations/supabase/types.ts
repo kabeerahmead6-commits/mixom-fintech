@@ -106,6 +106,7 @@ export type Database = {
           kyc_status: string
           phone: string | null
           shop_name: string | null
+          virtual_account_issued: boolean
           virtual_account_number: string | null
           virtual_ifsc: string
         }
@@ -120,6 +121,7 @@ export type Database = {
           kyc_status?: string
           phone?: string | null
           shop_name?: string | null
+          virtual_account_issued?: boolean
           virtual_account_number?: string | null
           virtual_ifsc?: string
         }
@@ -134,6 +136,7 @@ export type Database = {
           kyc_status?: string
           phone?: string | null
           shop_name?: string | null
+          virtual_account_issued?: boolean
           virtual_account_number?: string | null
           virtual_ifsc?: string
         }
@@ -247,6 +250,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_update_profile: {
+        Args: { p_blocked?: boolean; p_kyc_status?: string; p_user_id: string }
+        Returns: boolean
+      }
       apply_wallet_txn: {
         Args: {
           p_amount: number
@@ -288,6 +295,11 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      record_mpin_failure: { Args: { p_user_id: string }; Returns: number }
+      set_mpin_once: {
+        Args: { p_hash: string; p_user_id: string }
         Returns: boolean
       }
     }

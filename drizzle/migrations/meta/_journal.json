@@ -15,6 +15,27 @@
       "when": 1793876117127,
       "tag": "0001_secure_bootstrap_and_mpin_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794316818220,
+      "tag": "0002_secure_mpin_and_admin_controls",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794316875732,
+      "tag": "0003_secure_mpin_setup_once",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794317011674,
+      "tag": "0004_prevent_unissued_virtual_accounts",
+      "breakpoints": true
     }
   ]
 }

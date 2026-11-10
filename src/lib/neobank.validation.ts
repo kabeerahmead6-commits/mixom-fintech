@@ -5,3 +5,7 @@ export function isSixDigitMpin(value: string) {
 export function isValidCommissionPercent(value: number) {
   return Number.isFinite(value) && value >= 0 && value <= 100
 }
+
+export function isValidWalletTransferAmount(value: number) {
+  return Number.isFinite(value) && value > 0
+}
