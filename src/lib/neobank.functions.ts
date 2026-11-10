@@ -111,14 +111,6 @@ export const setMpin = createServerFn({ method: 'POST' })
     return { saved: true }
   })
 
-export const getMpinStatus = createServerFn({ method: 'GET' })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
-    const { data } = await supabaseAdmin.from('mpins').select('user_id').eq('user_id', context.userId).maybeSingle()
-    return { needsSetup: !data }
-  })
-
 export const getSignInStatus = createServerFn({ method: 'GET' })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {

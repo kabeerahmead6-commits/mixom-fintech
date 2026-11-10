@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import {
-  getDashboard, getEkoCatalog, getEkoSender, getMpinStatus, getSignInStatus,
+  getDashboard, getEkoCatalog, getEkoSender, getSignInStatus,
   setMpin, updateAdminUser, updateCommission, verifyMpin,
 } from '@/lib/neobank.functions'
 import type { DashboardData } from '@/lib/neobank.types'
@@ -243,8 +243,6 @@ function NeoBankApp() {
   if (!data?.profile) return <div className="neo-loading"><span className="neo-loader" /><span>{userError || 'Loading your account…'}</span><Button variant="outline" onClick={() => void loadDashboard()}>Retry</Button></div>
 
   const isAgent = data.profile.account_type === 'agent'
-  const titleByTab: Record<ActiveTab, string> = { services: 'Services', history: 'History', help: 'Help', account: 'Account' }
-
   return (
     <div className="neo-app">
       <div className="neo-mobile-status"><span>9:41</span><span className="neo-device"><Smartphone size={13} /> 1 device</span><span className="neo-signal"><span>5G</span><span className="neo-signal-bars"><i /><i /><i /></span><ShieldCheck size={15} /><span>82%</span></span></div>
@@ -302,7 +300,7 @@ function Field(props: { label: string; name: string; type?: string; placeholder?
   return <label className="neo-field"><span>{props.label}</span><input name={props.name} type={props.type ?? 'text'} placeholder={props.placeholder} required={props.required} minLength={props.minLength} inputMode={props.inputMode} /></label>
 }
 
-function HomeView({ data, isAgent, online, setOnline, onService, onOpenScreen, showAllBills, setShowAllBills }: { data: DashboardData; isAgent: boolean; online: boolean; setOnline: (online: boolean) => void; onService: (service: ServiceInfo) => void; onOpenScreen: (screen: Screen) => void; showAllBills: boolean; setShowAllBills: (show: boolean) => void }) {
+function HomeView({ data, isAgent, online, setOnline, onService, onOpenScreen, onHistory, showAllBills, setShowAllBills }: { data: DashboardData; isAgent: boolean; online: boolean; setOnline: (online: boolean) => void; onService: (service: ServiceInfo) => void; onOpenScreen: (screen: Screen) => void; onHistory: () => void; showAllBills: boolean; setShowAllBills: (show: boolean) => void }) {
   const mainServices = isAgent ? services.slice(0, 9) : services.slice(5, 9).concat(services.slice(9, 16))
   const bills = services.slice(9, 16)
   return <div className="neo-page-content">
@@ -319,7 +317,7 @@ function HomeView({ data, isAgent, online, setOnline, onService, onOpenScreen, s
       <div className="neo-services-grid">{(showAllBills ? [...mainServices, ...bills.filter((bill) => !mainServices.includes(bill))] : mainServices).map((service) => <ServiceButton key={service.label} service={service} onClick={() => onService(service)} />)}</div>
     </section>
     {isAgent && <button className="neo-promo-strip" onClick={() => onOpenScreen('earnings')}><span className="neo-promo-mark">₹</span><span><strong>Grow your earnings</strong><small>Track your service commissions</small></span><ArrowRight size={18} /></button>}
-    <section className="neo-activity-panel"><div className="neo-section-head"><div><p className="neo-kicker">YOUR ACTIVITY</p><h2>Recent transactions</h2></div><button className="neo-text-link" onClick={() => window.dispatchEvent(new Event('open-history'))}>See all <ChevronRight size={16} /></button></div><TransactionList transactions={(data.transactions ?? []).slice(0, 4)} /></section>
+    <section className="neo-activity-panel"><div className="neo-section-head"><div><p className="neo-kicker">YOUR ACTIVITY</p><h2>Recent transactions</h2></div><button className="neo-text-link" onClick={onHistory}>See all <ChevronRight size={16} /></button></div><TransactionList transactions={(data.transactions ?? []).slice(0, 4)} /></section>
     <footer className="neo-footer-note"><ShieldCheck size={14} /> Your account is protected with secure sign-in and device-level safeguards.</footer>
   </div>
 }
@@ -327,7 +325,7 @@ function HomeView({ data, isAgent, online, setOnline, onService, onOpenScreen, s
 function ServiceButton({ service, onClick }: { service: ServiceInfo; onClick: () => void }) {
   return <button className="neo-service-button" onClick={onClick}><span className="neo-service-icon"><service.icon size={25} strokeWidth={1.8} /></span><span>{service.label}</span></button>
 }
-function NavItem({ active, label, icon, onClick }: { active: boolean; label: string; icon: React.ReactNode; onClick: () => void }) { return <button className={`neo-nav-item ${active ? 'active' : ''}`} onClick={onClick}>{icon}<span>{label}</span></button> }
+function NavItem({ active, label, icon, onClick }: { active: boolean; label: string; icon: ReactNode; onClick: () => void }) { return <button className={`neo-nav-item ${active ? 'active' : ''}`} onClick={onClick}>{icon}<span>{label}</span></button> }
 
 function HistoryView({ transactions, filter, setFilter, search, setSearch }: { transactions: DashboardData['transactions']; filter: string; setFilter: (value: string) => void; search: string; setSearch: (value: string) => void }) {
   const filters = [{ value: 'all', label: 'All' }, { value: 'wallet', label: 'Wallet' }, { value: 'aeps', label: 'AePS' }, { value: 'dmt', label: 'DMT' }, { value: 'bbps', label: 'Bills' }, { value: 'recharge', label: 'Recharge' }]
@@ -349,7 +347,7 @@ function TransactionList({ transactions, showFull = false }: { transactions: Das
   })}</div>
 }
 
-function FeatureScreen({ screen, selectedService, data, providerValues, busy, onBack, onCatalog, onSenderSearch, onTestCredit, setProviderValues, onFreeze, onSignOut }: { screen: Screen; selectedService: ServiceInfo | null; data: DashboardData; providerValues: unknown; busy: boolean; onBack: () => void; onCatalog: (kind: 'categories' | 'banks') => void; onSenderSearch: (data: FormData) => void; onTestCredit: (data: FormData) => void; setProviderValues: (value: unknown) => void; onFreeze: () => void; onSignOut: () => void }) {
+function FeatureScreen({ screen, selectedService, data, providerValues, busy, onBack, onCatalog, onSenderSearch, setProviderValues, onFreeze, onSignOut }: { screen: Screen; selectedService: ServiceInfo | null; data: DashboardData; providerValues: unknown; busy: boolean; onBack: () => void; onCatalog: (kind: 'categories' | 'banks') => void; onSenderSearch: (data: FormData) => void; setProviderValues: (value: unknown) => void; onFreeze: () => void; onSignOut: () => void }) {
   const titles: Record<string, string> = { transfer: 'Send money', bill: 'Recharges & bills', recharge: 'Mobile recharge', service: selectedService?.label ?? 'Banking service', settlement: 'Wallet & settlement', earnings: 'My earnings', mpin: 'MPIN settings', profile: 'Account settings' }
   const isAgent = data.profile?.account_type === 'agent'
   return <div className="neo-page-content"><div className="neo-page-header"><Button variant="outline" size="icon" aria-label="Back" onClick={onBack}><ArrowLeft size={19} /></Button><div><p className="neo-kicker">{isAgent ? 'MERCHANT SERVICES' : 'NEOBANK'}</p><h1>{titles[screen] ?? 'Account'}</h1></div></div>
