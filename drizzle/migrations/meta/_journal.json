@@ -15,6 +15,13 @@
       "when": 1793876117127,
       "tag": "0001_secure_bootstrap_and_mpin_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794316818220,
+      "tag": "0002_secure_mpin_and_admin_controls",
+      "breakpoints": true
     }
   ]
 }
