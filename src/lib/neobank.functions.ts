@@ -58,15 +58,16 @@ export const getDashboard = createServerFn({ method: 'GET' })
       context.supabase.from('user_roles').select('role').eq('user_id', userId),
     ])
     const isAdmin = Boolean(roles?.some((role) => role.role === 'admin'))
+    const isApprovedAgent = Boolean(roles?.some((role) => role.role === 'agent'))
     if (isAdmin) {
       const [{ data: users }, { data: recentTransactions }, { data: rates }] = await Promise.all([
         context.supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(100),
         context.supabase.from('transactions').select('*').order('created_at', { ascending: false }).limit(25),
         context.supabase.from('commission_rates').select('*').order('service'),
       ])
-      return { profile, balance: Number(wallet?.balance ?? 0), transactions: transactions ?? [], isAdmin, users: users ?? [], recentTransactions: recentTransactions ?? [], rates: rates ?? [] }
+      return { profile, balance: Number(wallet?.balance ?? 0), transactions: transactions ?? [], isAdmin, isApprovedAgent, users: users ?? [], recentTransactions: recentTransactions ?? [], rates: rates ?? [] }
     }
-    return { profile, balance: Number(wallet?.balance ?? 0), transactions: transactions ?? [], isAdmin, users: [], recentTransactions: [], rates: [] }
+    return { profile, balance: Number(wallet?.balance ?? 0), transactions: transactions ?? [], isAdmin, isApprovedAgent, users: [], recentTransactions: [], rates: [] }
   })
 
 export const verifyMpin = createServerFn({ method: 'POST' })
@@ -106,8 +107,9 @@ export const setMpin = createServerFn({ method: 'POST' })
     const salt = bytesToHex(saltBytes)
     const hash = `${salt}:${await derivePinHash(data.pin, salt, pepper)}`
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
-    const { error } = await supabaseAdmin.from('mpins').upsert({ user_id: context.userId, hash, failed_attempts: 0, locked_until: null })
+    const { data: saved, error } = await supabaseAdmin.rpc('set_mpin_once', { p_user_id: context.userId, p_hash: hash })
     if (error) throw new Error('Could not save your MPIN. Please try again.')
+    if (!saved) throw new Error('Your MPIN is already set. Sign out and enter your current MPIN.')
     return { saved: true }
   })
 
@@ -129,7 +131,8 @@ export const getEkoCatalog = createServerFn({ method: 'GET' })
     const accessKey = process.env['EKO_ACCESS_KEY']
     const initiator = process.env['EKO_INITIATOR_ID']
     if (!developerKey || !accessKey || !initiator) throw new Error('Eko is not connected yet.')
-    return callEko(data.kind === 'categories' ? '/customer/payment/bbps/categories' : '/tools/reference/banks', { developerKey, accessKey, initiator })
+    const result = await callEko(data.kind === 'categories' ? '/customer/payment/bbps/categories' : '/tools/reference/banks', { developerKey, accessKey, initiator })
+    return JSON.parse(JSON.stringify(result)) as { status?: number; message?: string; param_attributes?: { list_elements?: Array<{ operator_category_id?: number; operator_category_name?: string; operator_id?: string | number; operator_name?: string; bank_id?: string | number; bank_name?: string }> } }
   })
 
 export const getEkoSender = createServerFn({ method: 'GET' })
@@ -142,7 +145,8 @@ export const getEkoSender = createServerFn({ method: 'GET' })
     const initiator = process.env['EKO_INITIATOR_ID']
     const userCode = process.env['EKO_USER_CODE']
     if (!developerKey || !accessKey || !initiator || !userCode) throw new Error('Eko is not connected yet.')
-    return callEko(`/customer/payment/dmt-fino/sender/${encodeURIComponent(data.mobile)}`, { developerKey, accessKey, initiator }, { user_code: userCode })
+    const result = await callEko(`/customer/payment/dmt-fino/sender/${encodeURIComponent(data.mobile)}`, { developerKey, accessKey, initiator }, { user_code: userCode })
+    return JSON.parse(JSON.stringify(result)) as { status?: number; message?: string; param_attributes?: { list_elements?: Array<{ operator_category_id?: number; operator_category_name?: string; operator_id?: string | number; operator_name?: string; bank_id?: string | number; bank_name?: string }> } }
   })
 
 export const updateAdminUser = createServerFn({ method: 'POST' })
