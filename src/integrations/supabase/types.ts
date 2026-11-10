@@ -106,6 +106,7 @@ export type Database = {
           kyc_status: string
           phone: string | null
           shop_name: string | null
+          virtual_account_issued: boolean
           virtual_account_number: string | null
           virtual_ifsc: string
         }
@@ -120,6 +121,7 @@ export type Database = {
           kyc_status?: string
           phone?: string | null
           shop_name?: string | null
+          virtual_account_issued?: boolean
           virtual_account_number?: string | null
           virtual_ifsc?: string
         }
@@ -134,6 +136,7 @@ export type Database = {
           kyc_status?: string
           phone?: string | null
           shop_name?: string | null
+          virtual_account_issued?: boolean
           virtual_account_number?: string | null
           virtual_ifsc?: string
         }

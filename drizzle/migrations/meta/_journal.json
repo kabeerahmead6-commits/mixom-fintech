@@ -29,6 +29,13 @@
       "when": 1794316875732,
       "tag": "0003_secure_mpin_setup_once",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794317011674,
+      "tag": "0004_prevent_unissued_virtual_accounts",
+      "breakpoints": true
     }
   ]
 }

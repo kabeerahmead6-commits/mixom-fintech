@@ -9,6 +9,7 @@ export type DashboardData = {
     kyc_status: string
     blocked: boolean
     virtual_account_number: string | null
+    virtual_account_issued: boolean
     virtual_ifsc: string
     card_frozen: boolean
   } | null
