@@ -20,7 +20,7 @@ function bytesToBase64(bytes: Uint8Array) {
 
 async function derivePinHash(pin: string, saltHex: string, pepper: string) {
   const material = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin + pepper), 'PBKDF2', false, ['deriveBits'])
-  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: hexToBytes(saltHex), iterations: 120_000, hash: 'SHA-256' }, material, 512)
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: hexToBytes(saltHex), iterations: 100_000, hash: 'SHA-256' }, material, 512)
   return bytesToHex(new Uint8Array(bits))
 }
 
